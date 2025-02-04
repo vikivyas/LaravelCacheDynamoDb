@@ -11,17 +11,11 @@ use Rikudou\DynamoDbCache\Encoder\SerializeItemEncoder;
 
 final class DefaultCacheItemConverter implements CacheItemConverterInterface
 {
-    /**
-     * @var CacheItemEncoderInterface
-     */
-    private $encoder;
+    private CacheItemEncoderInterface $encoder;
 
-    /**
-     * @var ClockInterface
-     */
-    private $clock;
+    private ClockInterface $clock;
 
-    public function __construct(?CacheItemEncoderInterface $encoder = null, ClockInterface $clock = null)
+    public function __construct(?CacheItemEncoderInterface $encoder = null, ?ClockInterface $clock = null)
     {
         if ($encoder === null) {
             $encoder = new SerializeItemEncoder();

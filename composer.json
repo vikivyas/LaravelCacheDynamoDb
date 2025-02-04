@@ -4,8 +4,8 @@
   "minimum-stability": "stable",
   "license": "MIT",
   "require": {
-    "psr/cache": "^1.0 | ^2.0",
-    "php": "^7.3 | ^8.0",
+    "psr/cache": "^2.0 | ^3.0",
+    "php": "^8.0",
     "rikudou/clock": "^1.0",
     "psr/simple-cache": "^1.0",
     "async-aws/dynamo-db": "^1.0"
@@ -22,9 +22,10 @@
   },
   "require-dev": {
     "friendsofphp/php-cs-fixer": "^2.16",
-    "phpstan/phpstan": "^0.12.43",
+    "phpstan/phpstan": "^1.8",
     "phpunit/phpunit": "^9.3",
-    "ext-json": "*"
+    "ext-json": "*",
+    "jetbrains/phpstorm-attributes": "^1.0"
   },
   "provide": {
     "psr/cache-implementation": "1.0",
@@ -35,5 +36,10 @@
     "phpstan": "phpstan analyse --level max src",
     "phpunit": "phpunit",
     "test": "composer fixer -- --dry-run && composer phpstan && composer phpunit"
+  },
+  "config": {
+    "allow-plugins": {
+      "ocramius/package-versions": true
+    }
   }
 }

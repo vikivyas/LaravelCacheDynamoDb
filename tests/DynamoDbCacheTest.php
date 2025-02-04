@@ -3,6 +3,7 @@
 namespace Rikudou\Tests\DynamoDbCache;
 
 use ArrayIterator;
+use AsyncAws\Core\Exception\Http\NetworkException;
 use AsyncAws\Core\Response;
 use AsyncAws\Core\Test\Http\SimpleMockedResponse;
 use AsyncAws\Core\Test\ResultMockFactory;
@@ -29,6 +30,7 @@ use Rikudou\Clock\TestClock;
 use Rikudou\DynamoDbCache\DynamoCacheItem;
 use Rikudou\DynamoDbCache\DynamoDbCache;
 use Rikudou\DynamoDbCache\Encoder\SerializeItemEncoder;
+use Rikudou\DynamoDbCache\Enum\NetworkErrorMode;
 use Rikudou\DynamoDbCache\Exception\InvalidArgumentException;
 use stdClass;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -1068,6 +1070,213 @@ final class DynamoDbCacheTest extends TestCase
         self::assertTrue($this->instance->deleteMultiple($iterable));
     }
 
+    /**
+     * @see https://github.com/RikudouSage/DynamoDbCachePsr6/issues/23
+     */
+    public function testGetItemFailsBecauseOfNetworkFailureDefault()
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+
+        // NetworkException may occur when AsyncAws fails to connect to DynamoDB.
+        // In the case of a connection failure, we should treat it as a cache miss.
+        $client->method('getItem')->willThrowException(new NetworkException());
+
+        $cache = new DynamoDbCache('test', $client);
+
+        $this->expectWarning();
+        $cache->getItem('foo');
+    }
+
+    /**
+     * @see https://github.com/RikudouSage/DynamoDbCachePsr6/issues/23
+     */
+    public function testGetItemFailsBecauseOfNetworkFailureModeWarning()
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+
+        // NetworkException may occur when AsyncAws fails to connect to DynamoDB.
+        // In the case of a connection failure, we should treat it as a cache miss.
+        $client->method('getItem')->willThrowException(new NetworkException());
+
+        $cache = new DynamoDbCache(
+            'test',
+            $client,
+            'id',
+            'ttl',
+            'value',
+            null,
+            null,
+            null,
+            null,
+            NetworkErrorMode::WARNING
+        );
+
+        $this->expectWarning();
+        $cache->getItem('foo');
+    }
+
+    /**
+     * @see https://github.com/RikudouSage/DynamoDbCachePsr6/issues/23
+     */
+    public function testGetItemFailsBecauseOfNetworkFailureModeIgnore()
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+
+        // NetworkException may occur when AsyncAws fails to connect to DynamoDB.
+        // In the case of a connection failure, we should treat it as a cache miss.
+        $client->method('getItem')->willThrowException(new NetworkException());
+
+        $cache = new DynamoDbCache(
+            'test',
+            $client,
+            'id',
+            'ttl',
+            'value',
+            null,
+            null,
+            null,
+            null,
+            NetworkErrorMode::IGNORE
+        );
+
+        $item = $cache->getItem('foo');
+
+        self::assertFalse($item->isHit());
+    }
+
+    /**
+     * @see https://github.com/RikudouSage/DynamoDbCachePsr6/issues/23
+     */
+    public function testGetItemFailsBecauseOfNetworkFailureModeThrow()
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+
+        // NetworkException may occur when AsyncAws fails to connect to DynamoDB.
+        // In the case of a connection failure, we should treat it as a cache miss.
+        $client->method('getItem')->willThrowException(new NetworkException());
+
+        $cache = new DynamoDbCache(
+            'test',
+            $client,
+            'id',
+            'ttl',
+            'value',
+            null,
+            null,
+            null,
+            null,
+            NetworkErrorMode::THROW
+        );
+
+        $this->expectException(NetworkException::class);
+        $cache->getItem('foo');
+    }
+
+    /**
+     * @see https://github.com/RikudouSage/DynamoDbCachePsr6/issues/23
+     */
+    public function testDeleteItemFailsBecauseOfNetworkFailureModeWarning()
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+
+        // NetworkException may occur when AsyncAws fails to connect to DynamoDB.
+        // In the case of a connection failure, we should treat it as a cache miss.
+        $client->method('getItem')->willThrowException(new NetworkException());
+
+        $cache = new DynamoDbCache(
+            'test',
+            $client,
+            'id',
+            'ttl',
+            'value',
+            null,
+            null,
+            null,
+            null,
+            NetworkErrorMode::WARNING
+        );
+
+        $this->expectWarning();
+        $cache->deleteItem('foo');
+    }
+
+    /**
+     * @see https://github.com/RikudouSage/DynamoDbCachePsr6/issues/23
+     */
+    public function testDeleteItemFailsBecauseOfNetworkFailureModeIgnore()
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+
+        // NetworkException may occur when AsyncAws fails to connect to DynamoDB.
+        // In the case of a connection failure, we should treat it as a cache miss.
+        $client->method('getItem')->willThrowException(new NetworkException());
+
+        $cache = new DynamoDbCache(
+            'test',
+            $client,
+            'id',
+            'ttl',
+            'value',
+            null,
+            null,
+            null,
+            null,
+            NetworkErrorMode::IGNORE
+        );
+
+        self::assertFalse($cache->deleteItem('foo'));
+    }
+
+    /**
+     * @see https://github.com/RikudouSage/DynamoDbCachePsr6/issues/23
+     */
+    public function testDeleteItemFailsBecauseOfNetworkFailureModeThrow()
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+
+        // NetworkException may occur when AsyncAws fails to connect to DynamoDB.
+        // In the case of a connection failure, we should treat it as a cache miss.
+        $client->method('getItem')->willThrowException(new NetworkException());
+
+        $cache = new DynamoDbCache(
+            'test',
+            $client,
+            'id',
+            'ttl',
+            'value',
+            null,
+            null,
+            null,
+            null,
+            NetworkErrorMode::THROW
+        );
+
+        $this->expectException(NetworkException::class);
+        $cache->deleteItem('foo');
+    }
+
+    /**
+     * @see https://github.com/RikudouSage/DynamoDbCachePsr6/issues/23
+     */
+    public function testGetItemFailsBecauseOfNetworkFailureInvalidMode()
+    {
+        $client = $this->createMock(DynamoDbClient::class);
+
+        $this->expectException(LogicException::class);
+        new DynamoDbCache(
+            'test',
+            $client,
+            'id',
+            'ttl',
+            'value',
+            null,
+            null,
+            null,
+            null,
+            -3
+        );
+    }
+
     private function getFakeClient(
         array $pool,
         string $idField = 'id',
@@ -1255,30 +1464,34 @@ final class DynamoDbCacheTest extends TestCase
     private function getEmptyBaseCacheItem()
     {
         return new class implements CacheItemInterface {
-            public function getKey()
+            public function getKey(): string
             {
                 return 'test';
             }
 
-            public function get()
+            public function get(): mixed
             {
+                return 'test';
             }
 
-            public function isHit()
+            public function isHit(): bool
             {
                 return true;
             }
 
-            public function set($value)
+            public function set($value): static
             {
+                return $this;
             }
 
-            public function expiresAt($expiration)
+            public function expiresAt($expiration): static
             {
+                return $this;
             }
 
-            public function expiresAfter($time)
+            public function expiresAfter($time): static
             {
+                return $this;
             }
         };
     }

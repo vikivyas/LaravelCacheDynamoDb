@@ -3,61 +3,34 @@
 namespace Rikudou\DynamoDbCache;
 
 use AsyncAws\DynamoDb\DynamoDbClient;
+use JetBrains\PhpStorm\ExpectedValues;
 use Rikudou\Clock\ClockInterface;
 use Rikudou\DynamoDbCache\Converter\CacheItemConverterRegistry;
 use Rikudou\DynamoDbCache\Encoder\CacheItemEncoderInterface;
+use Rikudou\DynamoDbCache\Enum\NetworkErrorMode;
 
 final class DynamoDbCacheBuilder
 {
-    /**
-     * @var string
-     */
-    private $tableName;
+    private string $primaryField = 'id';
 
-    /**
-     * @var DynamoDbClient
-     */
-    private $client;
+    private string $ttlField = 'ttl';
 
-    /**
-     * @var string
-     */
-    private $primaryField = 'id';
+    private string $valueField = 'value';
 
-    /**
-     * @var string
-     */
-    private $ttlField = 'ttl';
+    private ?string $prefix = null;
 
-    /**
-     * @var string
-     */
-    private $valueField = 'value';
+    private ?ClockInterface $clock = null;
 
-    /**
-     * @var string|null
-     */
-    private $prefix = null;
+    private ?CacheItemConverterRegistry $converterRegistry = null;
 
-    /**
-     * @var ClockInterface|null
-     */
-    private $clock = null;
+    private ?CacheItemEncoderInterface $encoder = null;
 
-    /**
-     * @var CacheItemConverterRegistry|null
-     */
-    private $converterRegistry = null;
+    private int $networkErrorMode = NetworkErrorMode::DEFAULT;
 
-    /**
-     * @var CacheItemEncoderInterface|null
-     */
-    private $encoder = null;
-
-    private function __construct(string $tableName, DynamoDbClient $client)
-    {
-        $this->tableName = $tableName;
-        $this->client = $client;
+    private function __construct(
+        private string $tableName,
+        private DynamoDbClient $client
+    ) {
     }
 
     public static function create(string $tableName, DynamoDbClient $client): self
@@ -121,6 +94,16 @@ final class DynamoDbCacheBuilder
         return $copy;
     }
 
+    public function withNetworkErrorMode(
+        #[ExpectedValues(valuesFromClass: NetworkErrorMode::class)]
+        int $networkErrorMode
+    ): self {
+        $copy = clone $this;
+        $copy->networkErrorMode = $networkErrorMode;
+
+        return $copy;
+    }
+
     public function build(): DynamoDbCache
     {
         return new DynamoDbCache(
@@ -132,7 +115,8 @@ final class DynamoDbCacheBuilder
             $this->clock,
             $this->converterRegistry,
             $this->encoder,
-            $this->prefix
+            $this->prefix,
+            $this->networkErrorMode
         );
     }
 }
